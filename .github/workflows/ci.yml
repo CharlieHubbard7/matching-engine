@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: cmake -B build && cmake --build build -j
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+      - name: Benchmark (also checks for allocations while matching)
+        run: ./build/bench
+
+  sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build with ASan and UBSan
+        run: cmake -B build -DME_SANITIZE=ON -DCMAKE_BUILD_TYPE=Debug && cmake --build build -j
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
